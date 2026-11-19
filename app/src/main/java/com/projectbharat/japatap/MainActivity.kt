@@ -56,6 +56,8 @@ class MainActivity:ComponentActivity(){
  val badgeMilestones=listOf(1L,11L,21L,51L,108L,501L,1008L,10008L)
  val unlocked=badgeMilestones.count{malas>=it}
  val next=badgeMilestones.firstOrNull{it>malas}
+ var streakState by remember(selectedId){mutableStateOf(PracticeStreak(0,0,0))}
+ LaunchedEffect(selectedId){selected?.let{streakState=calculatePracticeStreak(dao.practiceTimestamps(it.id))}}
  val dailyGoal=selected?.dailyMalaTarget?:0
  val lifetimeGoal=selected?.lifetimeJapaTarget?:0L
  MaterialTheme(colorScheme=lightColorScheme(primary=Color(0xFF6353A4),secondary=Color(0xFFB98B43),background=Color(0xFFF7F5FA),surface=Color.White)){
@@ -78,7 +80,7 @@ class MainActivity:ComponentActivity(){
  item{ProgressPanel("Daily Mala target",dailyMalas,dailyGoal.toLong(),"Malas completed today")}
  item{ProgressPanel("Lifetime Japa target",total,lifetimeGoal,"Japa counted lifetime")}
  item{Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp)){Text("SPIRITUAL PROGRESS",fontWeight=FontWeight.Bold);Text(rankFor(malas),style=MaterialTheme.typography.titleLarge);Text(unlocked.toString()+" of "+badgeMilestones.size+" badges unlocked");Text(next?.let{"Next milestone: "+it+" Malas ("+(it*108)+" Japa)"}?: "All milestones reached");if(next!=null)LinearProgressIndicator(progress={malas.toFloat()/next.toFloat()},modifier=Modifier.fillMaxWidth())}}}
- item{Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp)){Text("CONSISTENCY · सातत्य",fontWeight=FontWeight.Bold);Text("Daily practice streaks and bonus badges will be added in this phase's next increment. Lifetime milestones never expire.")}}}
+ item{Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp)){Text("CONSISTENCY · सातत्य",fontWeight=FontWeight.Bold);Text("Current streak: "+streakState.current+" days · Best: "+streakState.best+" days",style=MaterialTheme.typography.titleMedium);Text("Practice days recorded: "+streakState.days);Text("Consistency milestones: "+listOf(3,7,21,40,108).filter{streakState.best>=it}.joinToString(separator=", "))}}}
  }
  }}
  if(targetDialog&&selected!=null){AlertDialog(onDismissRequest={targetDialog=false},title={Text("Targets · "+selected.title)},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){Text("Daily Mala target (0 = disabled)");Row(verticalAlignment=Alignment.CenterVertically){OutlinedButton(onClick={dailyDraft=(dailyDraft-1).coerceAtLeast(0)}){Text("−")};Text(dailyDraft.toString()+" Malas",Modifier.weight(1f),textAlign=TextAlign.Center);OutlinedButton(onClick={dailyDraft++}){Text("+")}};Text("Lifetime Japa target");OutlinedTextField(lifetimeDraft,{lifetimeDraft=it.filter(Char::isDigit)},label={Text("Repetitions")},singleLine=true)}},confirmButton={TextButton(onClick={scope.launch{dao.putMantra(selected.copy(dailyMalaTarget=dailyDraft,lifetimeJapaTarget=lifetimeDraft.toLongOrNull()?.coerceAtLeast(0L)?:0L));targetDialog=false}}){Text("Save")}},dismissButton={TextButton(onClick={targetDialog=false}){Text("Cancel")}})}
@@ -87,4 +89,6 @@ class MainActivity:ComponentActivity(){
 }
 @Composable private fun KpiTile(title:String,value:String,modifier:Modifier=Modifier){Card(modifier){Column(Modifier.padding(10.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(title,style=MaterialTheme.typography.labelSmall);Text(value,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)}}}
 @Composable private fun ProgressPanel(title:String,value:Long,target:Long,unit:String){Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(title,fontWeight=FontWeight.SemiBold);Text(value.toString()+" / "+target+" · "+unit);if(target>0)LinearProgressIndicator(progress={ (value.toFloat()/target.toFloat()).coerceIn(0f,1f)},modifier=Modifier.fillMaxWidth())else Text("Set your goal from settings to track progress.")}}}
+private data class PracticeStreak(val current:Int,val best:Int,val days:Int)
+private fun calculatePracticeStreak(timestamps:List<Long>):PracticeStreak{val zone=ZoneId.systemDefault();val dates=timestamps.map{Instant.ofEpochMilli(it).atZone(zone).toLocalDate()}.distinct().sortedDescending();if(dates.isEmpty())return PracticeStreak(0,0,0);val today=LocalDate.now(zone);var current=0;var cursor=if(dates.first()==today)today else today.minusDays(1);while(dates.contains(cursor)){current++;cursor=cursor.minusDays(1)};var best=0;var run=0;var previous:LocalDate?=null;for(date in dates.sorted()){run=if(previous?.plusDays(1)==date)run+1 else 1;best=maxOf(best,run);previous=date};return PracticeStreak(current,best,dates.size)}
 private fun rankFor(malas:Long)=when{malas>=10008->"महासंकल्प";malas>=1008->"महासाधना";malas>=501->"साधना समर्पण";malas>=108->"साधना पथ";malas>=51->"जप संकल्प";malas>=21->"जप निष्ठा";malas>=11->"नियमित जप";malas>=1->"जप आरंभ";else->"जप साधना प्रारंभ"}

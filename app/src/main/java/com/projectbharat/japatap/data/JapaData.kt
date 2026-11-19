@@ -17,6 +17,7 @@ data class JapaLog(@PrimaryKey(autoGenerate=true) val id:Long=0,val mantraId:Str
  @Query("SELECT COALESCE(SUM(amount),0) FROM japa_logs WHERE mantraId=:id") fun total(id:String):Flow<Long>
  @Query("SELECT COALESCE(SUM(amount),0) FROM japa_logs WHERE mantraId=:id AND timestamp>=:start AND timestamp<:end") fun period(id:String,start:Long,end:Long):Flow<Long>
  @Query("SELECT timestamp FROM japa_logs WHERE mantraId=:id ORDER BY timestamp DESC") suspend fun timestamps(id:String):List<Long>
+ @Query("SELECT timestamp FROM japa_logs WHERE mantraId=:id ORDER BY timestamp DESC") suspend fun practiceTimestamps(id:String):List<Long>
  @Query("SELECT * FROM japa_logs WHERE mantraId=:id ORDER BY timestamp DESC LIMIT 1") suspend fun latest(id:String):JapaLog?
  @Query("DELETE FROM japa_logs WHERE id=:id") suspend fun deleteLog(id:Long)
 }

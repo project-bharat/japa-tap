@@ -102,8 +102,12 @@ private fun deityFor(m:MantraEntity):String=when(m.id){
  item{OutlinedButton(onClick={customDraft="";customDialog=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Add,null);Text("Add custom mantra")}}
  }
  "Japa" ->JapaScreen(padding,selected,ringCount,total,today,dailyMalas,dailyGoal,lifetimeGoal,malas,unlocked,next,streakState,dao,scope,{targetDialog=true},{achievementsDialog=true})
- "History" ->LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){item{Text("Japa History",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text("Your recent practice",color=muted)};item{Card(colors=CardDefaults.cardColors(containerColor=panel)){Column(Modifier.padding(16.dp)){Text(selected?.title?: "Select mantra");Text("Today's count: $today");Text("Total count: $total");Text("Current streak: ${streakState.current} days")}};item{Text("Recent mantra activity will be expanded in the My Japa Report phase.",color=muted)}} 
- else ->LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(top=12.dp,bottom=24.dp)){
+  "History" -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   item { Text("Japa History",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold); Text("Your recent practice",color=muted) }
+   item { Card(colors=CardDefaults.cardColors(containerColor=panel)) { Column(Modifier.padding(16.dp)) { Text(selected?.title ?: "Select mantra"); Text("Today's count: $today"); Text("Total count: $total"); Text("Current streak: ${streakState.current} days") } } }
+   item { Text("Recent mantra activity will be expanded in the My Japa Report phase.",color=muted) }
+  }
+  else -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(top=12.dp,bottom=24.dp)){
  item{Card(colors=CardDefaults.cardColors(containerColor=panel),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(18.dp)){Text("Namaste 🙏",style=MaterialTheme.typography.titleMedium,color=teal);Text("Continue your daily jap",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(selected?.title?: "Choose a mantra",color=muted);Spacer(Modifier.height(12.dp));Button(onClick={tab="Japa"},modifier=Modifier.fillMaxWidth()){Text("Start Japa")}}}}
  item{Text("Your practice today",fontWeight=FontWeight.Bold,style=MaterialTheme.typography.titleMedium)}
  item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){KpiTile("TODAY",today.toString(),Modifier.weight(1f));KpiTile("TOTAL JAPA",total.toString(),Modifier.weight(1f));KpiTile("MALAS",malas.toString(),Modifier.weight(1f))}}

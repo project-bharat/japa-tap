@@ -1,6 +1,15 @@
 package com.projectbharat.japatap
 
 import android.os.Bundle
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.DisposableEffect
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
@@ -73,6 +82,9 @@ private fun deityFor(m:MantraEntity):String=when(m.id){
  var search by remember{mutableStateOf("")}
  var searchOpen by remember{mutableStateOf(false)}
  var category by remember{mutableStateOf("All")}
+ var hapticsEnabled by remember{mutableStateOf(true)}
+ val context=LocalContext.current
+ DisposableEffect(tab){if(tab=="Japa") windowKeepAwake(context,true) else windowKeepAwake(context,false);onDispose{windowKeepAwake(context,false)}}
  val selected=mantras.firstOrNull{it.id==selectedId}?:mantras.firstOrNull()
  val total by (selected?.let{dao.total(it.id)}?:flowOf(0L)).collectAsStateWithLifecycle(0L)
  val bounds=dayBounds()
@@ -101,7 +113,7 @@ private fun deityFor(m:MantraEntity):String=when(m.id){
  items(visibleMantras){m->Card(Modifier.fillMaxWidth().clickable{selectedId=m.id;tab="Japa"},colors=CardDefaults.cardColors(containerColor=panel),shape=RoundedCornerShape(18.dp)){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(deityFor(m).uppercase(),style=MaterialTheme.typography.labelSmall,color=teal);Text(m.title,fontWeight=FontWeight.SemiBold);Text("Tap to start counting",style=MaterialTheme.typography.bodySmall,color=muted)};Text(if(m.id==selectedId)"✓" else "→",color=teal)}}}
  item{OutlinedButton(onClick={customDraft="";customDialog=true},modifier=Modifier.fillMaxWidth()){Icon(Icons.Default.Add,null);Text("Add custom mantra")}}
  }
- "Japa" ->JapaScreen(padding,selected,ringCount,total,today,dailyMalas,dailyGoal,lifetimeGoal,malas,unlocked,next,streakState,dao,scope,{targetDialog=true},{achievementsDialog=true})
+ "Japa" ->JapaScreen(padding,selected,ringCount,total,today,dailyMalas,dailyGoal,lifetimeGoal,malas,unlocked,next,streakState,dao,scope,context,hapticsEnabled,{hapticsEnabled=!hapticsEnabled},{targetDialog=true},{achievementsDialog=true})
   "History" -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
    item { Text("Japa History",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold); Text("Your recent practice",color=muted) }
    item { Card(colors=CardDefaults.cardColors(containerColor=panel)) { Column(Modifier.padding(16.dp)) { Text(selected?.title ?: "Select mantra"); Text("Today's count: $today"); Text("Total count: $total"); Text("Current streak: ${streakState.current} days") } } }
@@ -126,10 +138,10 @@ private fun deityFor(m:MantraEntity):String=when(m.id){
  if(customDialog){AlertDialog(onDismissRequest={customDialog=false},title={Text("Add your mantra")},text={OutlinedTextField(customDraft,{customDraft=it},label={Text("Mantra text")},modifier=Modifier.fillMaxWidth())},confirmButton={TextButton(onClick={scope.launch{val id="custom-"+System.currentTimeMillis();dao.putMantra(MantraEntity(id,customDraft.trim(),sortOrder=mantras.size+1));selectedId=id;customDialog=false;tab="Japa"}} ,enabled=customDraft.isNotBlank()){Text("Add")}},dismissButton={TextButton(onClick={customDialog=false}){Text("Cancel")}})}
  }
 }
-@Composable private fun JapaScreen(padding:PaddingValues,selected:MantraEntity?,ringCount:Int,total:Long,today:Long,dailyMalas:Long,dailyGoal:Int,lifetimeGoal:Long,malas:Long,unlocked:Int,next:Long?,streak:PracticeStreak,dao:JapaDao,scope:kotlinx.coroutines.CoroutineScope,onTargets:()->Unit,onBadges:()->Unit){
+@Composable private fun JapaScreen(padding:PaddingValues,selected:MantraEntity?,ringCount:Int,total:Long,today:Long,dailyMalas:Long,dailyGoal:Int,lifetimeGoal:Long,malas:Long,unlocked:Int,next:Long?,streak:PracticeStreak,dao:JapaDao,scope:kotlinx.coroutines.CoroutineScope,context:Context,haptics:Boolean,onToggleHaptics:()->Unit,onTargets:()->Unit,onBadges:()->Unit){
  LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(vertical=16.dp)){
  item{Text("Your Japa",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold);Text(selected?.title?: "Choose a mantra",color=muted)}
- item{Card(colors=CardDefaults.cardColors(containerColor=panel),shape=RoundedCornerShape(26.dp)){Column(Modifier.fillMaxWidth().padding(18.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(selected?.title?: "जप",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center);Spacer(Modifier.height(12.dp));Box(Modifier.size(230.dp).clip(CircleShape).clickable{scope.launch{selected?.let{dao.log(JapaLog(mantraId=it.id,timestamp=System.currentTimeMillis()))}}},contentAlignment=Alignment.Center){Canvas(Modifier.fillMaxSize()){drawArc(Color(0xFF343247),-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round));drawArc(teal,-90f,ringCount/108f*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round))};Column(horizontalAlignment=Alignment.CenterHorizontally){Text(ringCount.toString(),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Bold);Text("/ 108");Text("CURRENT MALA",style=MaterialTheme.typography.labelMedium,color=muted)}};Text("Tap to count",color=muted);Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onClick={scope.launch{selected?.let{dao.latest(it.id)?.let{last->dao.deleteLog(last.id)}}}}){Icon(Icons.Default.Undo,null);Text("Undo")};Button(onClick={scope.launch{selected?.let{dao.log(JapaLog(mantraId=it.id,timestamp=System.currentTimeMillis()))}}}){Text("+1 Japa")}}}}}
+ item{Card(colors=CardDefaults.cardColors(containerColor=panel),shape=RoundedCornerShape(26.dp)){Column(Modifier.fillMaxWidth().padding(18.dp),horizontalAlignment=Alignment.CenterHorizontally){Text(selected?.title?: "जप",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center);Spacer(Modifier.height(12.dp));Box(Modifier.size(230.dp).clip(CircleShape).clickable{scope.launch{selected?.let{incrementJapa(context,dao,it.id,haptics,total+1)}}},contentAlignment=Alignment.Center){Canvas(Modifier.fillMaxSize()){drawArc(Color(0xFF343247),-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round));drawArc(teal,-90f,ringCount/108f*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round))};Column(horizontalAlignment=Alignment.CenterHorizontally){Text(ringCount.toString(),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Bold);Text("/ 108");Text("CURRENT MALA",style=MaterialTheme.typography.labelMedium,color=muted)}};Text("Tap to count",color=muted);Row(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalAlignment=Alignment.CenterVertically){Text("Haptics",color=muted);Switch(checked=haptics,onCheckedChange={onToggleHaptics()})};Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onClick={scope.launch{selected?.let{dao.latest(it.id)?.let{last->dao.deleteLog(last.id)}}}}){Icon(Icons.Default.Undo,null);Text("Undo")};Button(onClick={scope.launch{selected?.let{incrementJapa(context,dao,it.id,haptics,total+1)}}}){Text("+1 Japa")}}}}}
  item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){KpiTile("TOTAL",total.toString(),Modifier.weight(1f));KpiTile("TODAY",today.toString(),Modifier.weight(1f));KpiTile("MALAS",malas.toString(),Modifier.weight(1f))}}
  item{ProgressPanel("Daily Mala target",dailyMalas,dailyGoal.toLong(),"Malas")}
  item{ProgressPanel("Lifetime target",total,lifetimeGoal,"Japa")}
@@ -143,3 +155,6 @@ private fun deitySymbol(c:String)=when(c){"Ram"->"राम";"Krishna"->"कृ�
 private data class PracticeStreak(val current:Int,val best:Int,val days:Int)
 private fun calculatePracticeStreak(timestamps:List<Long>):PracticeStreak{val zone=ZoneId.systemDefault();val dates=timestamps.map{Instant.ofEpochMilli(it).atZone(zone).toLocalDate()}.distinct().sortedDescending();if(dates.isEmpty())return PracticeStreak(0,0,0);val today=LocalDate.now(zone);var current=0;var cursor=if(dates.first()==today)today else today.minusDays(1);while(dates.contains(cursor)){current++;cursor=cursor.minusDays(1)};var best=0;var run=0;var previous:LocalDate?=null;for(date in dates.sorted()){run=if(previous?.plusDays(1)==date)run+1 else 1;best=maxOf(best,run);previous=date};return PracticeStreak(current,best,dates.size)}
 private fun rankFor(malas:Long)=when{malas>=10008->"महासंकल्प";malas>=1008->"महासाधना";malas>=501->"साधना समर्पण";malas>=108->"साधना पथ";malas>=51->"जप संकल्प";malas>=21->"जप निष्ठा";malas>=11->"नियमित जप";malas>=1->"जप आरंभ";else ->"जप साधना प्रारंभ"}
+
+private fun windowKeepAwake(context:Context,enabled:Boolean){val activity=context as? ComponentActivity?:return;if(enabled)activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
+private suspend fun incrementJapa(context:Context,dao:JapaDao,mantraId:String,haptics:Boolean,newTotal:Long){dao.log(JapaLog(mantraId=mantraId,timestamp=System.currentTimeMillis()));if(haptics){val vibrator=if(Build.VERSION.SDK_INT>=31)(context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator else @Suppress("DEPRECATION") (context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator);if(vibrator.hasVibrator()){val duration=if(newTotal%108L==0L)90L else 18L;if(Build.VERSION.SDK_INT>=26)vibrator.vibrate(VibrationEffect.createOneShot(duration,if(newTotal%108L==0L)VibrationEffect.DEFAULT_AMPLITUDE else 45))else @Suppress("DEPRECATION") vibrator.vibrate(duration)} };if(newTotal%108L==0L)Toast.makeText(context,"Mala complete · 108 Japa",Toast.LENGTH_SHORT).show()}

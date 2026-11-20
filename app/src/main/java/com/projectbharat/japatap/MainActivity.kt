@@ -60,19 +60,19 @@ class MainActivity:ComponentActivity(){
  LaunchedEffect(selectedId){selected?.let{streakState=calculatePracticeStreak(dao.practiceTimestamps(it.id))}}
  val dailyGoal=selected?.dailyMalaTarget?:0
  val lifetimeGoal=selected?.lifetimeJapaTarget?:0L
- MaterialTheme(colorScheme=lightColorScheme(primary=Color(0xFF6353A4),secondary=Color(0xFFB98B43),background=Color(0xFFF7F5FA),surface=Color.White)){
- Scaffold(topBar={TopAppBar(title={Text("Japa Tap · भजन जप")},actions={IconButton(onClick={dailyDraft=selected?.dailyMalaTarget?:0;lifetimeDraft=(selected?.lifetimeJapaTarget?:0L).toString();targetDialog=true}){Icon(Icons.Default.Settings,"Targets")};IconButton(onClick={achievementsDialog=true}){Icon(Icons.Default.EmojiEvents,"Achievements")}})},containerColor=Color(0xFFF7F5FA)){padding->
+ MaterialTheme(colorScheme=darkColorScheme(primary=Color(0xFF94B5C2),secondary=Color(0xFFEADCC1),background=Color(0xFF17161D),surface=Color(0xFF23212B),onPrimary=Color(0xFF17161D),onSecondary=Color(0xFF423C6D),onBackground=Color(0xFFFEF5D8),onSurface=Color(0xFFFEF5D8),surfaceVariant=Color(0xFF343247),onSurfaceVariant=Color(0xFFBFC4D2))){
+ Scaffold(topBar={TopAppBar(title={Text("Bhajame · Daily Jap & Bhakti",fontWeight=FontWeight.SemiBold)},actions={IconButton(onClick={dailyDraft=selected?.dailyMalaTarget?:0;lifetimeDraft=(selected?.lifetimeJapaTarget?:0L).toString();targetDialog=true}){Icon(Icons.Default.Settings,"Targets")};IconButton(onClick={achievementsDialog=true}){Icon(Icons.Default.EmojiEvents,"Achievements")}})},containerColor=Color(0xFF17161D)){padding->
  LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=20.dp)){
- item{Text("मंत्र निवडा / Choose mantra",style=MaterialTheme.typography.labelLarge)}
+ item{Text("Choose your mantra",style=MaterialTheme.typography.labelLarge,color=Color(0xFF94B5C2))}
  items(mantras){m->FilterChip(selected=m.id==selectedId,onClick={selectedId=m.id},label={Text(m.title)},modifier=Modifier.fillMaxWidth())}
- item{Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(18.dp),horizontalAlignment=Alignment.CenterHorizontally){
+ item{Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=Color(0xFF23212B)),shape=RoundedCornerShape(24.dp)){Column(Modifier.padding(18.dp),horizontalAlignment=Alignment.CenterHorizontally){
  Text(selected?.title?: "जप",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center)
  Spacer(Modifier.height(12.dp))
  Box(Modifier.size(220.dp).clip(CircleShape).clickable{scope.launch{selected?.let{dao.log(JapaLog(mantraId=it.id,timestamp=System.currentTimeMillis()))}}},contentAlignment=Alignment.Center){
- Canvas(Modifier.fillMaxSize()){drawArc(Color(0xFFE6E1EF),-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round));drawArc(Color(0xFF7462B3),-90f,ringCount/108f*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round))}
- Column(horizontalAlignment=Alignment.CenterHorizontally){Text(ringCount.toString(),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Bold);Text("/ 108");Text("CURRENT MALA",style=MaterialTheme.typography.labelMedium)}
+ Canvas(Modifier.fillMaxSize()){drawArc(Color(0xFF343247),-90f,360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round));drawArc(Color(0xFF94B5C2),-90f,ringCount/108f*360f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(15.dp.toPx(),cap=StrokeCap.Round))}
+ Column(horizontalAlignment=Alignment.CenterHorizontally){Text(ringCount.toString(),style=MaterialTheme.typography.displayMedium,fontWeight=FontWeight.Bold);Text("/ 108");Text("CURRENT MALA",style=MaterialTheme.typography.labelMedium,color=Color(0xFF7A839E))}
  }
- Text("Tap anywhere to count · स्पर्श करून जप मोजा",textAlign=TextAlign.Center)
+ Text("Tap anywhere to count",textAlign=TextAlign.Center,color=Color(0xFF7A839E))
  Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){OutlinedButton(onClick={scope.launch{selected?.let{dao.latest(it.id)?.let{last->dao.deleteLog(last.id)}}}}){Icon(Icons.Default.Undo,null);Text(" Undo")};Button(onClick={scope.launch{selected?.let{dao.log(JapaLog(mantraId=it.id,timestamp=System.currentTimeMillis()))}}}){Text("+ 1 Japa")}}
  }}
  }
